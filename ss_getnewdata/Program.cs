@@ -11,12 +11,12 @@ namespace ss_getnewdata
 {
     class Program
     {
+        static string current_res_ver = "";
+
         static void Main(string[] args)
         {
             //System.Net.ServicePointManager.ServerCertificateValidationCallback = ((sender, certificate, chain, sslPolicyErrors) => true);
 
-            Clear();
-            string current_res_ver = "";
             string previous_res_ver = "";
             string filename = "";
             bool isDiff = true;
@@ -32,6 +32,22 @@ namespace ss_getnewdata
             {
                 Environment.Exit(1);
             }
+            Clear();
+
+            if (args.Contains("-filelist"))
+            {
+                Process tempProcess = new Process();
+                tempProcess.StartInfo.FileName = Process.GetCurrentProcess().MainModule.FileName.Replace(".vshost", "");
+                string[] tempStrings = File.ReadAllLines("filelist.txt");
+                foreach (string tempString in tempStrings)
+                {
+                    tempProcess.StartInfo.Arguments = "-current " + current_res_ver + " -file " + tempString;
+                    tempProcess.Start();
+                    tempProcess.WaitForExit();
+                }
+                Environment.Exit(0);
+            }
+
             try
             {
                 previous_res_ver = args[Array.IndexOf(args, "-previous") + 1];
@@ -53,9 +69,12 @@ namespace ss_getnewdata
             Process p = new Process();
             p.StartInfo.FileName = "wget.exe";
             p.StartInfo.Arguments = current_manifest + " --no-check-certificate";
-            p.Start();
-            p.WaitForExit();
-            File.Move("Android_AHigh_SHigh", "current_manifest");
+            if (!File.Exists("current_manifest"))
+            {
+                p.Start();
+                p.WaitForExit();
+                File.Move("Android_AHigh_SHigh", "current_manifest");
+            }
             if (isDiff)
             {
                 p.StartInfo.Arguments = previous_manifest + " --no-check-certificate";
@@ -248,7 +267,12 @@ namespace ss_getnewdata
             {
                 if (query == "select name,hash from manifests where name like \"" + filename + "\"")
                 {
-                    File.Move(filehash, filename + ".lz4");
+                    try
+                    {
+                        Directory.CreateDirectory("downloaded_files");
+                    }
+                    catch { }
+                    File.Move(filehash, "downloaded_files\\" + filename + ".lz4");
                 }
                 else
                 {
@@ -263,7 +287,12 @@ namespace ss_getnewdata
             {
                 if (query == "select name,hash from manifests where name like \"" + filename + "\"")
                 {
-                    File.Move(filehash, filename.Split('/').Last());
+                    try
+                    {
+                        Directory.CreateDirectory("downloaded_files");
+                    }
+                    catch { }
+                    File.Move(filehash, "downloaded_files\\" + filename.Split('/').Last());
                 }
                 else
                 {
@@ -278,7 +307,12 @@ namespace ss_getnewdata
             {
                 if (query == "select name,hash from manifests where name like \"" + filename + "\"")
                 {
-                    File.Move(filehash, filename + ".lz4");
+                    try
+                    {
+                        Directory.CreateDirectory("downloaded_files");
+                    }
+                    catch { }
+                    File.Move(filehash, "downloaded_files\\" + filename + ".lz4");
                 }
                 else
                 {
@@ -293,7 +327,12 @@ namespace ss_getnewdata
             {
                 if (query == "select name,hash from manifests where name like \"" + filename + "\"")
                 {
-                    File.Move(filehash, filename + ".lz4");
+                    try
+                    {
+                        Directory.CreateDirectory("downloaded_files");
+                    }
+                    catch { }
+                    File.Move(filehash, "downloaded_files\\" + filename + ".lz4");
                 }
                 else
                 {
@@ -352,11 +391,29 @@ namespace ss_getnewdata
                 File.Delete("Android_AHigh_SHigh");
             }
             catch { }
-            try
+            if (File.Exists("current_manifest"))
             {
-                File.Delete("current_manifest");
+                new System.Net.WebClient().DownloadFile("http://storage.game.starlight-stage.jp/dl/" + current_res_ver + "/manifests/all_dbmanifest", "hashes");
+                string[] lines = File.ReadAllLines("hashes");
+                string hash = "";
+                foreach (string line in lines)
+                {
+                    if (line.Contains("Android_AHigh_SHigh"))
+                    {
+                        hash = line.Split(',')[1];
+                    }
+                }
+                string current_hash = BitConverter.ToString(System.Security.Cryptography.MD5.Create().ComputeHash(File.ReadAllBytes("current_manifest"))).Replace("-", "").ToLower();
+                if (!hash.Equals(current_hash))
+                {
+                    try
+                    {
+                        File.Delete("current_manifest");
+                    }
+                    catch { }
+                }
+                File.Delete("hashes");
             }
-            catch { }
             try
             {
                 File.Delete("previous_manifest");
