@@ -12,10 +12,18 @@ namespace ss_getnewdata
     class Program
     {
         static string current_res_ver = "";
+        static string manifestString = "Android_AHigh_SHigh";
 
         static void Main(string[] args)
         {
             //System.Net.ServicePointManager.ServerCertificateValidationCallback = ((sender, certificate, chain, sslPolicyErrors) => true);
+
+            if (Environment.GetCommandLineArgs().Contains("-audio_low"))
+            {
+                manifestString = "Android_AHigh_SLow";
+            }
+
+            bool no_window = false;
 
             string previous_res_ver = "";
             string filename = "";
@@ -41,7 +49,12 @@ namespace ss_getnewdata
                 string[] tempStrings = File.ReadAllLines("filelist.txt");
                 foreach (string tempString in tempStrings)
                 {
-                    tempProcess.StartInfo.Arguments = "-current " + current_res_ver + " -file " + tempString;
+                    tempProcess.StartInfo.Arguments = "-current " + current_res_ver + " -file " + tempString.Split(':')[0].Replace("\"", "");
+                    if (Environment.GetCommandLineArgs().Contains("-audio_low"))
+                    {
+                        tempProcess.StartInfo.Arguments = "-current " + current_res_ver + " -file " + tempString.Split(':')[0].Replace("\"", "") + " -audio_low";
+                    }
+                    tempProcess.StartInfo.UseShellExecute = false;
                     tempProcess.Start();
                     tempProcess.WaitForExit();
                 }
@@ -60,27 +73,29 @@ namespace ss_getnewdata
             {
                 isDiff = false;
             }
-            string current_manifest = "http://storage.game.starlight-stage.jp/dl/" + current_res_ver + "/manifests/Android_AHigh_SHigh";
+            string current_manifest = "http://storage.game.starlight-stage.jp/dl/" + current_res_ver + "/manifests/" + manifestString;
             string previous_manifest = "";
             if (isDiff)
             {
-                previous_manifest = "http://storage.game.starlight-stage.jp/dl/" + previous_res_ver + "/manifests/Android_AHigh_SHigh";
+                previous_manifest = "http://storage.game.starlight-stage.jp/dl/" + previous_res_ver + "/manifests/" + manifestString;
             }
             Process p = new Process();
             p.StartInfo.FileName = "wget.exe";
+            p.StartInfo.CreateNoWindow = no_window;
+            p.StartInfo.UseShellExecute = false;
             p.StartInfo.Arguments = current_manifest + " --no-check-certificate";
             if (!File.Exists("current_manifest"))
             {
                 p.Start();
                 p.WaitForExit();
-                File.Move("Android_AHigh_SHigh", "current_manifest");
+                File.Move(manifestString, "current_manifest");
             }
             if (isDiff)
             {
                 p.StartInfo.Arguments = previous_manifest + " --no-check-certificate";
                 p.Start();
                 p.WaitForExit();
-                File.Move("Android_AHigh_SHigh", "previous_manifest");
+                File.Move(manifestString, "previous_manifest");
             }
             p.StartInfo.FileName = "lz4er-win.exe";
             p.StartInfo.Arguments = "current_manifest";
@@ -98,26 +113,60 @@ namespace ss_getnewdata
                 connection = new SQLiteConnection("Data Source=previous_manifest.extracted;Version=3;");
                 connection.Open();
             }
-            //string query = "select name,hash from manifests where name like \"chara%\" and name like \"%base%\" or name like \"card%\" and name like \"%petit%\" or name like \"card%\" and name like \"%live%\" or name like \"card%\" and name like \"%sign%\" or name like \"card%\" and name like \"%xl%\" or name like \"card%\" and name like \"%bg%\" or name like \"comic%\" and name like \"%m.%\"";
+            //string query = "select name,hash from manifests where name like \"chara%\" and name like \"%base%\" or name like \"card%\" and name like \"%petit%\" or name like \"card%\" and name like \"%live%\" or name like \"card%\" and name like \"%sign%\" or name like \"card%\" and name like \"%xl%\" or name like \"card%\" and name like \"%bg%\" or name like \"comic%\" and name like \"%m.%\" or name like \"%photo_l%\"";
+            //string query = "select name,hash from manifests where name like \"%chara_201%\"";
             //string query = "select name,hash from manifests where name like \"%237%.acb\"";
             //string query = "select name,hash from manifests where name like \"l/song%\"";
             //string query = "select name,hash from manifests where name like \"%.acb%\"";
             //string query = "select name,hash from manifests where name like \"story_storydata%\"";
             //string query = "select name,hash from manifests where name like \"card%\" and name like \"%xl%\"";
-            //string query = "select name,hash from manifests where name like \"card%\" and name like \"%bg%\"";
+            //string query = "select name,hash from manifests where name like \"card%\" and name like \"%bg%\" and name not like \"%\\_01.unity3d\" escape \"\\\"";
             //string query = "select name,hash from manifests where name like \"gachaselect%\"";
             //string query = "select name,hash from manifests where name like \"chara%\" and name like \"%174%\" and name like \"%.unity3d\"";
             //string query = "select name,hash from manifests where name like \"%bgm_event_3005%\"";
             //string query = "select name,hash from manifests where name like \"item_%\"";
             //string query = "select name,hash from manifests where name like \"%chara_283%\" and name like \"%unity3d\"";
             //string query = "select name,hash from manifests where name like \"%stamp%\"";
-            //string query = "select name,hash from manifests where name like \"v/event_announce_%\" or name like \"story_thumbnail%\"";
+            //string query = "select name,hash from manifests where name like \"v/event_announce_%\" or name like \"story_thumbnail%\" and name not like \"story_thumbnail_5%\" or name like \"banner%\"";
             //string query = "select name,hash from manifests where name like \"%photo_l%\"";
             //string query = "select name,hash from manifests where name like \"item_20001%\"";
             //string query = "select name,hash from manifests where name like \"%gachaselect_3%\"";
+            //string query = "select name,hash from manifests where name like \"%gachaselect_%\"";
             //string query = "select name,hash from manifests where name like 'atlas_gacha_common.unity3d' or name like 'item_50006_s.unity3d' or name like 'item_50007_s.unity3d' or name like 'live_atlas_liveuiadd.unity3d' or name like 'loginbonus_bg_9005.unity3d' or name like 'banner_bnr_000047.unity3d' or name like 'jacket_1012.unity3d'";
+            //string query = "select name,hash from manifests where name like 'atlas%.unity3d'";
             //string query = "select name,hash from manifests where name like \"%loginbonus_bg%\"";
+            //string query = "select name,hash from manifests where name like \"%tutorial%\"";
+            //string query = "select name,hash from manifests where name like \"%emblem%\"";
+            //string query = "select name,hash from manifests where name like \"bg%\""
+            //string query = "select name,hash from manifests where name like \"3d_uvm_uv_movie%\"";
+            //string query = "select name,hash from manifests where name like \"%530120%\"";
+            //string query = "select name,hash from manifests where name like \"%jacket%\"";
             string query = "select name,hash from manifests";
+
+            if (Environment.GetCommandLineArgs().Contains("-getcards"))
+            {
+                query = "select name,hash from manifests where name like \"card%\" and name like \"%xl%\"";
+            }
+            if (Environment.GetCommandLineArgs().Contains("-getcards_bg"))
+            {
+                query = "select name,hash from manifests where name like \"card%\" and name like \"%bg%\" and name not like \"%\\_01.unity3d\" escape \"\\\"";
+            }
+            if (Environment.GetCommandLineArgs().Contains("-getcards_all"))
+            {
+                query = "select name,hash from manifests where name like \"chara%\" and name like \"%base%\" or name like \"card%\" and name like \"%petit%\" or name like \"card%\" and name like \"%live%\" or name like \"card%\" and name like \"%sign%\" or name like \"card%\" and name like \"%xl%\" or name like \"card%\" and name like \"%bg%\" or name like \"comic%\" and name like \"%m.%\" or name like \"%photo_l%\"";
+            }
+            if (Environment.GetCommandLineArgs().Contains("-end_of_event"))
+            {
+                query = "select name,hash from manifests where name like \"v/event_announce_%\" or name like \"story_thumbnail%\" and name not like \"story_thumbnail_5%\" or name like \"banner%\"";
+            }
+            if (Environment.GetCommandLineArgs().Contains("-platgacha_only"))
+            {
+                query = "select name,hash from manifests where name like \"%gachaselect_3%\"";
+            }
+            if (Environment.GetCommandLineArgs().Contains("-song_only"))
+            {
+                query = "select name,hash from manifests where name like \"l/song%\"";
+            }
 
             string card_id = "";
 
@@ -203,8 +252,16 @@ namespace ss_getnewdata
             Stack<string> mdbStack = new Stack<string>();
             while (reader.Read())
             {
-                if (!stack1.Contains(reader["name"].ToString()))
-                //if (!stack2.Contains(reader["hash"].ToString()))
+                bool checkCondition = !stack1.Contains(reader["name"].ToString());
+                if (Environment.GetCommandLineArgs().Contains("-diff"))
+                {
+                    checkCondition = !stack2.Contains(reader["hash"].ToString());
+                }
+                if (Environment.GetCommandLineArgs().Contains("-diff_only"))
+                {
+                    checkCondition = stack1.Contains(reader["name"].ToString()) && !stack2.Contains(reader["hash"].ToString());
+                }
+                if (checkCondition)
                 {
                     if (reader["name"].ToString().Contains(".unity3d"))
                     {
@@ -224,6 +281,10 @@ namespace ss_getnewdata
                                 text1 = text1 + reader["name"].ToString() + ": ";
                             }
                             text1 = text1 + "http://storage.game.starlight-stage.jp/dl/resources/High/Sound/Common/" + reader["name"].ToString().Split('/')[0] + "/" + reader["hash"].ToString() + "\r\n";
+                            if (Environment.GetCommandLineArgs().Contains("-audio_low"))
+                            {
+                                text1 = text1.Replace("High/Sound", "Low/Sound");
+                            }
                             soundStack.Push(reader["hash"].ToString());
                         }
                         else
@@ -272,15 +333,37 @@ namespace ss_getnewdata
                         Directory.CreateDirectory("downloaded_files");
                     }
                     catch { }
+                    try
+                    {
+                        File.Delete("downloaded_files\\" + filename + ".lz4");
+                    }
+                    catch { }
                     File.Move(filehash, "downloaded_files\\" + filename + ".lz4");
                 }
                 else
                 {
-                    try
+                    if (query == "select name,hash from manifests where name like \"" + filename + "\"" || query == "select name,hash from manifests where name like \"v/event_announce_%\" or name like \"story_thumbnail%\" and name not like \"story_thumbnail_5%\" or name like \"banner%\"")
                     {
-                        File.Move(filehash, filehash + ".unity3d.lz4");
+                        try
+                        {
+                            Directory.CreateDirectory("downloaded_files");
+                        }
+                        catch { }
+                        try
+                        {
+                            File.Delete("downloaded_files\\" + filehash + ".unity3d.lz4");
+                        }
+                        catch { }
+                        File.Move(filehash, "downloaded_files\\" + filehash + ".unity3d.lz4");
                     }
-                    catch { }
+                    else
+                    {
+                        try
+                        {
+                            File.Move(filehash, filehash + ".unity3d.lz4");
+                        }
+                        catch { }
+                    }
                 }
             }
             foreach (string filehash in soundStack)
@@ -292,15 +375,37 @@ namespace ss_getnewdata
                         Directory.CreateDirectory("downloaded_files");
                     }
                     catch { }
+                    try
+                    {
+                        File.Delete("downloaded_files\\" + filename.Split('/').Last());
+                    }
+                    catch { }
                     File.Move(filehash, "downloaded_files\\" + filename.Split('/').Last());
                 }
                 else
                 {
-                    try
+                    if (query == "select name,hash from manifests where name like \"" + filename + "\"" || query == "select name,hash from manifests where name like \"v/event_announce_%\" or name like \"story_thumbnail%\" and name not like \"story_thumbnail_5%\" or name like \"banner%\"")
                     {
-                        File.Move(filehash, filehash + ".acb");
+                        try
+                        {
+                            Directory.CreateDirectory("downloaded_files");
+                        }
+                        catch { }
+                        try
+                        {
+                            File.Delete("downloaded_files\\" + filehash + ".acb");
+                        }
+                        catch { }
+                        File.Move(filehash, "downloaded_files\\" + filehash + ".acb");
                     }
-                    catch { }
+                    else
+                    {
+                        try
+                        {
+                            File.Move(filehash, filehash + ".acb");
+                        }
+                        catch { }
+                    }
                 }
             }
             foreach (string filehash in blobDbStack)
@@ -310,6 +415,11 @@ namespace ss_getnewdata
                     try
                     {
                         Directory.CreateDirectory("downloaded_files");
+                    }
+                    catch { }
+                    try
+                    {
+                        File.Delete("downloaded_files\\" + filename + ".lz4");
                     }
                     catch { }
                     File.Move(filehash, "downloaded_files\\" + filename + ".lz4");
@@ -332,6 +442,11 @@ namespace ss_getnewdata
                         Directory.CreateDirectory("downloaded_files");
                     }
                     catch { }
+                    try
+                    {
+                        File.Delete("downloaded_files\\" + filename + ".lz4");
+                    }
+                    catch { }
                     File.Move(filehash, "downloaded_files\\" + filename + ".lz4");
                 }
                 else
@@ -344,8 +459,25 @@ namespace ss_getnewdata
                 }
             }
             File.Delete(current_res_ver + ".txt");
-            if (query == "select name,hash from manifests where name like \"" + filename + "\"" || query == "select name,hash from manifests where name like \"v/event_announce_%\" or name like \"story_thumbnail%\"")
+            if (query == "select name,hash from manifests where name like \"" + filename + "\"")
             {
+                Environment.Exit(0);
+            }
+            if (query == "select name,hash from manifests where name like \"v/event_announce_%\" or name like \"story_thumbnail%\" and name not like \"story_thumbnail_5%\" or name like \"banner%\"")
+            {
+                DirectoryInfo d2 = new DirectoryInfo(".\\downloaded_files");
+                p.StartInfo.FileName = "unitystudio\\Unity Studio.exe";
+                p.StartInfo.WorkingDirectory = ".\\downloaded_files";
+                foreach (FileInfo f in d2.EnumerateFiles("*.unity3d.lz4"))
+                {
+                    p.StartInfo.Arguments = "-assetbundle \"" + f.FullName + "\"";
+                    p.Start();
+                    p.WaitForExit();
+                }
+                p.StartInfo.FileName = @"c:\windows\system32\cmd.exe";
+                p.StartInfo.Arguments = "/c call ..\\create_montage.bat";
+                p.Start();
+                p.WaitForExit();
                 Environment.Exit(0);
             }
             DirectoryInfo d = new DirectoryInfo(".\\");
@@ -364,19 +496,42 @@ namespace ss_getnewdata
                 p.Start();
                 p.WaitForExit();
             }
-            if (query.Equals("select name,hash from manifests where name like \"card%\" and name like \"%bg%\""))
+            if (query.Equals("select name,hash from manifests where name like \"card%\" and name like \"%bg%\" and name not like \"%\\_01.unity3d\" escape \"\\\""))
             {
                 p.StartInfo.FileName = @"c:\windows\system32\cmd.exe";
                 p.StartInfo.Arguments = "/c call create_montage.bat";
                 p.StartInfo.WorkingDirectory = ".\\";
                 p.Start();
                 p.WaitForExit();
+                int jpgQuality = 92;
+                if (File.Exists(@".\Texture2D\out.jpg"))
+                {
+                    FileInfo file1 = new FileInfo(@".\Texture2D\out.jpg");
+                    while (file1.Length >= 4 * 1024 * 1024)
+                    {
+                        File.Delete(@".\Texture2D\out.jpg");
+                        p.StartInfo.Arguments = "/c call convert_jpg.bat " + jpgQuality--.ToString();
+                        p.Start();
+                        p.WaitForExit();
+                        file1 = new FileInfo(@".\Texture2D\out.jpg");
+                    }
+                }
             }
             Clear();
         }
 
         static void Clear()
         {
+            try
+            {
+                string newpath = DateTime.Now.ToString();
+                foreach (char c in Path.GetInvalidFileNameChars())
+                {
+                    newpath = newpath.Replace(c.ToString(), "");
+                }
+                Directory.Move(@".\Texture2D", @".\Texture2D" + newpath);
+            }
+            catch { }
             try
             {
                 DirectoryInfo d = new DirectoryInfo(".\\");
@@ -388,7 +543,7 @@ namespace ss_getnewdata
             catch { }
             try
             {
-                File.Delete("Android_AHigh_SHigh");
+                File.Delete(manifestString);
             }
             catch { }
             if (File.Exists("current_manifest"))
@@ -398,7 +553,7 @@ namespace ss_getnewdata
                 string hash = "";
                 foreach (string line in lines)
                 {
-                    if (line.Contains("Android_AHigh_SHigh"))
+                    if (line.Contains(manifestString))
                     {
                         hash = line.Split(',')[1];
                     }
